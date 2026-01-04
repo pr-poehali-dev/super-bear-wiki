@@ -1,12 +1,99 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+
+const REVIEWS_API = 'https://functions.poehali.dev/74380e08-c94c-4888-a7b6-2e95082bd066';
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState('about');
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [newReview, setNewReview] = useState({ username: '', rating: 5, comment: '' });
+  const [replyTexts, setReplyTexts] = useState<{[key: number]: string}>({});
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  
+  useEffect(() => {
+    loadReviews();
+  }, []);
+  
+  const loadReviews = async () => {
+    try {
+      const response = await fetch(`${REVIEWS_API}?action=get_reviews`);
+      const data = await response.json();
+      setReviews(data.reviews || []);
+    } catch (error) {
+      console.error('Error loading reviews:', error);
+    }
+  };
+  
+  const submitReview = async () => {
+    if (!newReview.username.trim() || !newReview.comment.trim()) {
+      alert('Пожалуйста, заполните имя и комментарий');
+      return;
+    }
+    
+    try {
+      const response = await fetch(REVIEWS_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_review',
+          username: newReview.username,
+          rating: newReview.rating,
+          comment: newReview.comment
+        })
+      });
+      
+      if (response.ok) {
+        setNewReview({ username: '', rating: 5, comment: '' });
+        loadReviews();
+      }
+    } catch (error) {
+      console.error('Error submitting review:', error);
+    }
+  };
+  
+  const submitReply = async (reviewId: number) => {
+    const replyText = replyTexts[reviewId]?.trim();
+    if (!replyText) return;
+    
+    try {
+      const response = await fetch(REVIEWS_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_reply',
+          review_id: reviewId,
+          username: isAdmin ? 'Super Bear Adventure RU Community' : 'Гость',
+          reply_text: replyText,
+          is_admin: isAdmin
+        })
+      });
+      
+      if (response.ok) {
+        setReplyTexts({ ...replyTexts, [reviewId]: '' });
+        loadReviews();
+      }
+    } catch (error) {
+      console.error('Error submitting reply:', error);
+    }
+  };
+  
+  const checkAdminPassword = () => {
+    if (adminPassword === 'admin2025') {
+      setIsAdmin(true);
+      setAdminPassword('');
+      alert('Вы вошли как администратор!');
+    } else {
+      alert('Неверный пароль');
+    }
+  };
 
   const characters = [
     { 
@@ -625,7 +712,183 @@ const Index = () => {
           </TabsContent>
         </Tabs>
 
-        <footer className="mt-16 text-center text-muted-foreground animate-fade-in space-y-2">
+        <div className="mt-16 animate-fade-in">
+          <Card className="border-2 border-accent/30 shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-3xl flex items-center gap-3">
+                <Icon name="MessageSquare" size={32} className="text-accent" />
+                Отзывы о вики-сайте
+              </CardTitle>
+              <CardDescription>Оцените наш сайт и оставьте комментарий!</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="bg-accent/5 p-6 rounded-lg border border-accent/20">
+                <h3 className="text-xl font-semibold mb-4">Оставить отзыв</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Ваш никнейм</label>
+                    <Input
+                      placeholder="Введите никнейм"
+                      value={newReview.username}
+                      onChange={(e) => setNewReview({ ...newReview, username: e.target.value })}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Оценка (0-5 звёзд)</label>
+                    <div className="flex gap-2">
+                      {[0, 1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          onClick={() => setNewReview({ ...newReview, rating: star })}
+                          className={`text-3xl transition-transform hover:scale-110 ${
+                            star <= newReview.rating ? 'opacity-100' : 'opacity-30'
+                          }`}
+                        >
+                          ⭐
+                        </button>
+                      ))}
+                      <span className="ml-2 text-lg font-semibold self-center">
+                        {newReview.rating} / 5
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Как вам вики-сайт? Есть вопросы?
+                    </label>
+                    <Textarea
+                      placeholder="Ваш комментарий..."
+                      value={newReview.comment}
+                      onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
+                      rows={4}
+                    />
+                  </div>
+                  
+                  <Button onClick={submitReview} className="w-full">
+                    <Icon name="Send" size={18} className="mr-2" />
+                    Отправить отзыв
+                  </Button>
+                </div>
+              </div>
+
+              {!isAdmin && (
+                <div className="bg-purple-500/10 p-4 rounded-lg border border-purple-500/30">
+                  <label className="text-sm font-medium mb-2 block">Вход для администратора</label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="password"
+                      placeholder="Пароль администратора"
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                    />
+                    <Button onClick={checkAdminPassword} variant="secondary">
+                      Войти
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {isAdmin && (
+                <div className="bg-green-500/10 p-4 rounded-lg border border-green-500/30">
+                  <p className="text-sm font-semibold text-green-700 dark:text-green-400 flex items-center gap-2">
+                    <Icon name="ShieldCheck" size={18} />
+                    Вы вошли как: Super Bear Adventure RU Community (Разработчик сайта)
+                  </p>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <h3 className="text-2xl font-semibold">Все отзывы ({reviews.length})</h3>
+                
+                {reviews.length === 0 && (
+                  <p className="text-center text-muted-foreground py-8">
+                    Пока нет отзывов. Будьте первым!
+                  </p>
+                )}
+                
+                {reviews.map((review) => (
+                  <Card key={review.id} className="border-2 border-secondary/20">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            {review.username}
+                            {review.is_admin && (
+                              <Badge variant="secondary" className="text-xs">
+                                Разработчик сайта
+                              </Badge>
+                            )}
+                          </CardTitle>
+                          <CardDescription>
+                            {new Date(review.created_at).toLocaleDateString('ru-RU', {
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </CardDescription>
+                        </div>
+                        <div className="flex gap-1">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <span key={i} className={i < review.rating ? 'opacity-100' : 'opacity-30'}>
+                              ⭐
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-base">{review.comment}</p>
+                      
+                      {review.replies && review.replies.length > 0 && (
+                        <div className="ml-6 space-y-3 border-l-2 border-accent/30 pl-4">
+                          {review.replies.map((reply: any) => (
+                            <div key={reply.id} className="bg-accent/5 p-3 rounded-lg">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="font-semibold text-sm">{reply.username}</span>
+                                {reply.is_admin && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Разработчик сайта
+                                  </Badge>
+                                )}
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(reply.created_at).toLocaleDateString('ru-RU', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </span>
+                              </div>
+                              <p className="text-sm">{reply.reply_text}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Написать ответ..."
+                          value={replyTexts[review.id] || ''}
+                          onChange={(e) => setReplyTexts({ ...replyTexts, [review.id]: e.target.value })}
+                        />
+                        <Button onClick={() => submitReply(review.id)} size="sm">
+                          <Icon name="Reply" size={16} className="mr-1" />
+                          Ответить
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <footer className="mt-8 text-center text-muted-foreground animate-fade-in space-y-2">
           <p className="text-sm">
             🎮 <strong>Super Bear Adventure</strong> © Earthkwak Games
           </p>

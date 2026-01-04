@@ -1,0 +1,31 @@
+{
+  "tests": [
+    {
+      "name": "Get all reviews",
+      "method": "GET",
+      "path": "/?action=get_reviews",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "reviews": "array"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Add new review",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "action": "add_review",
+        "username": "TestUser",
+        "rating": 5,
+        "comment": "Отличный вики-сайт!"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "review_id": "number"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
