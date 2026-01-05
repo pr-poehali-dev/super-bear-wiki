@@ -22,6 +22,8 @@ const Index = () => {
   const [achievements, setAchievements] = useState<string[]>([]);
   const [timeOnSite, setTimeOnSite] = useState(0);
   const [showAchievement, setShowAchievement] = useState<{title: string, description: string} | null>(null);
+  const [updateTimer, setUpdateTimer] = useState<string>('');
+  const [showUpdateTimer, setShowUpdateTimer] = useState(false);
   
   useEffect(() => {
     loadReviews();
@@ -36,6 +38,16 @@ const Index = () => {
       // Достижение за 60 минут
       if (elapsed >= 3600 && !achievements.includes('time_60min')) {
         unlockAchievement('time_60min', '⏱️ Исследователь вики!', 'Провели на сайте 60 минут');
+      }
+      
+      // Проверка таймера обновления
+      const savedTimer = localStorage.getItem('update_timer');
+      if (savedTimer) {
+        const updateTime = new Date(savedTimer).getTime();
+        const now = Date.now();
+        if (now >= updateTime && !achievements.includes('update_witness')) {
+          unlockAchievement('update_witness', '🎉 Свидетель обновления!', 'Вы были на сайте во время обновления!');
+        }
       }
     }, 1000);
     
@@ -94,9 +106,17 @@ const Index = () => {
       username = 'Super Bear Adventure RU Community';
     } else if (isUpdateMaker) {
       username = 'Update Maker';
-    } else if (!username || !comment) {
-      alert('Пожалуйста, заполните имя и комментарий');
-      return;
+    } else {
+      // Проверка запрещённых никнеймов
+      const forbiddenNames = ['super bear adventure ru community', 'update maker', 'administrator', 'admin'];
+      if (forbiddenNames.some(name => username.toLowerCase().includes(name))) {
+        alert('Этот никнейм зарезервирован и недоступен для использования');
+        return;
+      }
+      if (!username || !comment) {
+        alert('Пожалуйста, заполните имя и комментарий');
+        return;
+      }
     }
     
     try {
@@ -445,7 +465,7 @@ const Index = () => {
             </div>
           </div>
           <h1 className="text-6xl font-bold text-primary mb-4 drop-shadow-lg">
-            Super Bear Adventure <span className="text-3xl text-red-500">(мега обновление бета тест)</span>
+            Super Bear Adventure <span className="text-3xl text-red-500">(обновление бета тест)</span>
           </h1>
           <p className="text-xl text-muted-foreground mb-2">
             Полная русская энциклопедия игры
@@ -825,25 +845,35 @@ const Index = () => {
                     </div>
                   )}
                   
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Оценка (0-5 звёзд)</label>
-                    <div className="flex gap-2">
-                      {[0, 1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          onClick={() => setNewReview({ ...newReview, rating: star })}
-                          className={`text-3xl transition-transform hover:scale-110 ${
-                            star <= newReview.rating ? 'opacity-100' : 'opacity-30'
-                          }`}
-                        >
-                          ⭐
-                        </button>
-                      ))}
-                      <span className="ml-2 text-lg font-semibold self-center">
-                        {newReview.rating} / 5
-                      </span>
+                  {!isAdmin && !isUpdateMaker && (
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Оценка (0-5 мишек)</label>
+                      <div className="flex gap-2">
+                        {[0, 1, 2, 3, 4, 5].map((bear) => (
+                          <button
+                            key={bear}
+                            onClick={() => setNewReview({ ...newReview, rating: bear })}
+                            className={`text-3xl transition-transform hover:scale-110 ${
+                              bear <= newReview.rating ? 'opacity-100' : 'opacity-30'
+                            }`}
+                          >
+                            🐻
+                          </button>
+                        ))}
+                        <span className="ml-2 text-lg font-semibold self-center">
+                          {newReview.rating} / 5
+                        </span>
+                      </div>
                     </div>
-                  </div>
+                  )}
+                  
+                  {(isAdmin || isUpdateMaker) && (
+                    <div className="bg-yellow-500/10 p-3 rounded-lg border border-yellow-500/30">
+                      <p className="text-sm text-yellow-700 dark:text-yellow-400">
+                        ⚠️ Администраторы и Update Maker не могут оценивать сайт
+                      </p>
+                    </div>
+                  )}
                   
                   <div>
                     <label className="text-sm font-medium mb-2 block">
@@ -908,11 +938,52 @@ const Index = () => {
               )}
               
               {isUpdateMaker && (
-                <div className="bg-red-500/10 p-4 rounded-lg border border-red-500/30">
-                  <p className="text-sm font-semibold text-red-700 dark:text-red-400 flex items-center gap-2">
-                    <Icon name="Zap" size={18} />
-                    Вы вошли как: Update Maker (Official Update Maker)
-                  </p>
+                <div className="space-y-4">
+                  <div className="bg-red-500/10 p-4 rounded-lg border border-red-500/30">
+                    <p className="text-sm font-semibold text-red-700 dark:text-red-400 flex items-center gap-2">
+                      <Icon name="Zap" size={18} />
+                      Вы вошли как: Update Maker (Official Update Maker)
+                    </p>
+                  </div>
+                  
+                  <Card className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-purple-500/30">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Icon name="Clock" size={20} />
+                        Таймер обновления
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Время обновления</label>
+                        <Input
+                          type="datetime-local"
+                          value={updateTimer}
+                          onChange={(e) => setUpdateTimer(e.target.value)}
+                        />
+                      </div>
+                      <Button 
+                        onClick={() => {
+                          if (updateTimer) {
+                            localStorage.setItem('update_timer', new Date(updateTimer).toISOString());
+                            setShowUpdateTimer(true);
+                            alert('Таймер обновления установлен!');
+                          }
+                        }}
+                        className="w-full"
+                      >
+                        <Icon name="Check" size={18} className="mr-2" />
+                        Установить таймер
+                      </Button>
+                      {showUpdateTimer && localStorage.getItem('update_timer') && (
+                        <div className="bg-green-500/10 p-3 rounded-lg border border-green-500/30">
+                          <p className="text-sm text-green-700 dark:text-green-400">
+                            ✅ Таймер активен: {new Date(localStorage.getItem('update_timer')!).toLocaleString('ru-RU')}
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
               )}
 
@@ -942,6 +1013,17 @@ const Index = () => {
                                 Official Update Maker
                               </Badge>
                             )}
+                            {!review.is_admin && !review.is_update_maker && (
+                              achievements.includes('time_60min') ? (
+                                <Badge variant="outline" className="text-xs bg-blue-500/10 border-blue-500/30">
+                                  🔥 Много на сайте
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-xs bg-green-500/10 border-green-500/30">
+                                  🌟 Впервые на сайте
+                                </Badge>
+                              )
+                            )}
                           </CardTitle>
                           <CardDescription>
                             {new Date(review.created_at).toLocaleDateString('ru-RU', {
@@ -953,13 +1035,15 @@ const Index = () => {
                             })}
                           </CardDescription>
                         </div>
-                        <div className="flex gap-1">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <span key={i} className={i < review.rating ? 'opacity-100' : 'opacity-30'}>
-                              ⭐
-                            </span>
-                          ))}
-                        </div>
+                        {!review.is_admin && !review.is_update_maker && (
+                          <div className="flex gap-1">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <span key={i} className={i < review.rating ? 'opacity-100' : 'opacity-30'}>
+                                🐻
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
