@@ -445,7 +445,7 @@ const Index = () => {
             </div>
           </div>
           <h1 className="text-6xl font-bold text-primary mb-4 drop-shadow-lg">
-            Super Bear Adventure
+            Super Bear Adventure <span className="text-3xl text-red-500">(мега обновление бета тест)</span>
           </h1>
           <p className="text-xl text-muted-foreground mb-2">
             Полная русская энциклопедия игры
