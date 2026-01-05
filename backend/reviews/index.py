@@ -35,7 +35,7 @@ def handler(event: dict, context) -> dict:
             
             if action == 'get_reviews':
                 cur.execute("""
-                    SELECT id, username, rating, comment, created_at, is_admin
+                    SELECT id, username, rating, comment, created_at, is_admin, is_update_maker
                     FROM reviews
                     ORDER BY created_at DESC
                 """)
@@ -43,7 +43,7 @@ def handler(event: dict, context) -> dict:
                 for row in cur.fetchall():
                     review_id = row[0]
                     cur.execute("""
-                        SELECT id, username, reply_text, created_at, is_admin
+                        SELECT id, username, reply_text, created_at, is_admin, is_update_maker
                         FROM review_replies
                         WHERE review_id = %s
                         ORDER BY created_at ASC
@@ -54,7 +54,8 @@ def handler(event: dict, context) -> dict:
                             'username': r[1],
                             'reply_text': r[2],
                             'created_at': r[3].isoformat(),
-                            'is_admin': r[4]
+                            'is_admin': r[4],
+                            'is_update_maker': r[5]
                         }
                         for r in cur.fetchall()
                     ]
@@ -65,6 +66,7 @@ def handler(event: dict, context) -> dict:
                         'comment': row[3],
                         'created_at': row[4].isoformat(),
                         'is_admin': row[5],
+                        'is_update_maker': row[6],
                         'replies': replies
                     })
                 
@@ -82,6 +84,8 @@ def handler(event: dict, context) -> dict:
                 username = body.get('username', '').strip()
                 rating = body.get('rating', 0)
                 comment = body.get('comment', '').strip()
+                is_admin = body.get('is_admin', False)
+                is_update_maker = body.get('is_update_maker', False)
                 
                 if not username or not comment:
                     return {
@@ -98,10 +102,10 @@ def handler(event: dict, context) -> dict:
                     }
                 
                 cur.execute("""
-                    INSERT INTO reviews (username, rating, comment, is_admin)
-                    VALUES (%s, %s, %s, %s)
+                    INSERT INTO reviews (username, rating, comment, is_admin, is_update_maker)
+                    VALUES (%s, %s, %s, %s, %s)
                     RETURNING id
-                """, (username, rating, comment, False))
+                """, (username, rating, comment, is_admin, is_update_maker))
                 review_id = cur.fetchone()[0]
                 conn.commit()
                 
@@ -116,6 +120,7 @@ def handler(event: dict, context) -> dict:
                 username = body.get('username', '').strip()
                 reply_text = body.get('reply_text', '').strip()
                 is_admin = body.get('is_admin', False)
+                is_update_maker = body.get('is_update_maker', False)
                 
                 if not reply_text:
                     return {
@@ -126,12 +131,14 @@ def handler(event: dict, context) -> dict:
                 
                 if is_admin:
                     username = 'Super Bear Adventure RU Community'
+                elif is_update_maker:
+                    username = 'Update Maker'
                 
                 cur.execute("""
-                    INSERT INTO review_replies (review_id, username, reply_text, is_admin)
-                    VALUES (%s, %s, %s, %s)
+                    INSERT INTO review_replies (review_id, username, reply_text, is_admin, is_update_maker)
+                    VALUES (%s, %s, %s, %s, %s)
                     RETURNING id
-                """, (review_id, username, reply_text, is_admin))
+                """, (review_id, username, reply_text, is_admin, is_update_maker))
                 reply_id = cur.fetchone()[0]
                 conn.commit()
                 

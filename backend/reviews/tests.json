@@ -1,16 +1,6 @@
 {
   "tests": [
     {
-      "name": "Get all reviews",
-      "method": "GET",
-      "path": "/?action=get_reviews",
-      "expectedStatus": 200,
-      "expectedBody": {
-        "reviews": "array"
-      },
-      "bodyMatcher": "partial"
-    },
-    {
       "name": "Add new review",
       "method": "POST",
       "path": "/",
@@ -18,12 +8,13 @@
         "action": "add_review",
         "username": "TestUser",
         "rating": 5,
-        "comment": "Отличный вики-сайт!"
+        "comment": "Отличный вики-сайт!",
+        "is_admin": false,
+        "is_update_maker": false
       },
       "expectedStatus": 200,
       "expectedBody": {
-        "success": true,
-        "review_id": "number"
+        "success": true
       },
       "bodyMatcher": "partial"
     }

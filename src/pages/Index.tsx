@@ -16,11 +16,64 @@ const Index = () => {
   const [newReview, setNewReview] = useState({ username: '', rating: 5, comment: '' });
   const [replyTexts, setReplyTexts] = useState<{[key: number]: string}>({});
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isUpdateMaker, setIsUpdateMaker] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
+  const [updateMakerPassword, setUpdateMakerPassword] = useState('');
+  const [achievements, setAchievements] = useState<string[]>([]);
+  const [timeOnSite, setTimeOnSite] = useState(0);
+  const [showAchievement, setShowAchievement] = useState<{title: string, description: string} | null>(null);
   
   useEffect(() => {
     loadReviews();
+    loadAchievements();
+    
+    // Трекинг времени на сайте
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      setTimeOnSite(elapsed);
+      
+      // Достижение за 60 минут
+      if (elapsed >= 3600 && !achievements.includes('time_60min')) {
+        unlockAchievement('time_60min', '⏱️ Исследователь вики!', 'Провели на сайте 60 минут');
+      }
+    }, 1000);
+    
+    return () => clearInterval(interval);
   }, []);
+  
+  useEffect(() => {
+    checkDevReply();
+  }, [reviews]);
+  
+  const loadAchievements = () => {
+    const saved = localStorage.getItem('wiki_achievements');
+    if (saved) {
+      setAchievements(JSON.parse(saved));
+    }
+  };
+  
+  const unlockAchievement = (id: string, title: string, description: string) => {
+    if (!achievements.includes(id)) {
+      const newAchievements = [...achievements, id];
+      setAchievements(newAchievements);
+      localStorage.setItem('wiki_achievements', JSON.stringify(newAchievements));
+      setShowAchievement({ title, description });
+      setTimeout(() => setShowAchievement(null), 5000);
+    }
+  };
+  
+  const checkDevReply = () => {
+    // Проверяем есть ли ответ разработчика пользователю
+    const userReviews = reviews.filter(r => !r.is_admin);
+    const hasDevReply = userReviews.some(r => 
+      r.replies && r.replies.some((reply: any) => reply.is_admin || reply.is_update_maker)
+    );
+    
+    if (hasDevReply && !achievements.includes('dev_reply')) {
+      unlockAchievement('dev_reply', '🎮 Признание команды!', 'Разработчик ответил на ваш отзыв!');
+    }
+  };
   
   const loadReviews = async () => {
     try {
@@ -33,7 +86,15 @@ const Index = () => {
   };
   
   const submitReview = async () => {
-    if (!newReview.username.trim() || !newReview.comment.trim()) {
+    let username = newReview.username.trim();
+    const comment = newReview.comment.trim();
+    
+    // Если админ или Update Maker, используем их имена
+    if (isAdmin) {
+      username = 'Super Bear Adventure RU Community';
+    } else if (isUpdateMaker) {
+      username = 'Update Maker';
+    } else if (!username || !comment) {
       alert('Пожалуйста, заполните имя и комментарий');
       return;
     }
@@ -44,9 +105,11 @@ const Index = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'add_review',
-          username: newReview.username,
+          username: username,
           rating: newReview.rating,
-          comment: newReview.comment
+          comment: comment,
+          is_admin: isAdmin,
+          is_update_maker: isUpdateMaker
         })
       });
       
@@ -63,6 +126,10 @@ const Index = () => {
     const replyText = replyTexts[reviewId]?.trim();
     if (!replyText) return;
     
+    let username = 'Гость';
+    if (isAdmin) username = 'Super Bear Adventure RU Community';
+    if (isUpdateMaker) username = 'Update Maker';
+    
     try {
       const response = await fetch(REVIEWS_API, {
         method: 'POST',
@@ -70,9 +137,10 @@ const Index = () => {
         body: JSON.stringify({
           action: 'add_reply',
           review_id: reviewId,
-          username: isAdmin ? 'Super Bear Adventure RU Community' : 'Гость',
+          username: username,
           reply_text: replyText,
-          is_admin: isAdmin
+          is_admin: isAdmin,
+          is_update_maker: isUpdateMaker
         })
       });
       
@@ -90,6 +158,16 @@ const Index = () => {
       setIsAdmin(true);
       setAdminPassword('');
       alert('Вы вошли как администратор!');
+    } else {
+      alert('Неверный пароль');
+    }
+  };
+  
+  const checkUpdateMakerPassword = () => {
+    if (updateMakerPassword === 'updatemaker2025') {
+      setIsUpdateMaker(true);
+      setUpdateMakerPassword('');
+      alert('Вы вошли как Update Maker!');
     } else {
       alert('Неверный пароль');
     }
@@ -725,14 +803,27 @@ const Index = () => {
               <div className="bg-accent/5 p-6 rounded-lg border border-accent/20">
                 <h3 className="text-xl font-semibold mb-4">Оставить отзыв</h3>
                 <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Ваш никнейм</label>
-                    <Input
-                      placeholder="Введите никнейм"
-                      value={newReview.username}
-                      onChange={(e) => setNewReview({ ...newReview, username: e.target.value })}
-                    />
-                  </div>
+                  {!isAdmin && !isUpdateMaker && (
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Ваш никнейм</label>
+                      <Input
+                        placeholder="Введите никнейм"
+                        value={newReview.username}
+                        onChange={(e) => setNewReview({ ...newReview, username: e.target.value })}
+                      />
+                    </div>
+                  )}
+                  
+                  {(isAdmin || isUpdateMaker) && (
+                    <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 p-4 rounded-lg border border-green-500/30">
+                      <p className="text-sm font-semibold flex items-center gap-2">
+                        <Icon name="User" size={18} />
+                        Вы пишете от имени: <span className="text-primary">
+                          {isAdmin ? 'Super Bear Adventure RU Community' : 'Update Maker'}
+                        </span>
+                      </p>
+                    </div>
+                  )}
                   
                   <div>
                     <label className="text-sm font-medium mb-2 block">Оценка (0-5 звёзд)</label>
@@ -773,19 +864,36 @@ const Index = () => {
                 </div>
               </div>
 
-              {!isAdmin && (
-                <div className="bg-purple-500/10 p-4 rounded-lg border border-purple-500/30">
-                  <label className="text-sm font-medium mb-2 block">Вход для администратора</label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="password"
-                      placeholder="Пароль администратора"
-                      value={adminPassword}
-                      onChange={(e) => setAdminPassword(e.target.value)}
-                    />
-                    <Button onClick={checkAdminPassword} variant="secondary">
-                      Войти
-                    </Button>
+              {!isAdmin && !isUpdateMaker && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-purple-500/10 p-4 rounded-lg border border-purple-500/30">
+                    <label className="text-sm font-medium mb-2 block">Вход для администратора</label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="password"
+                        placeholder="Пароль"
+                        value={adminPassword}
+                        onChange={(e) => setAdminPassword(e.target.value)}
+                      />
+                      <Button onClick={checkAdminPassword} variant="secondary">
+                        Войти
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-red-500/10 p-4 rounded-lg border border-red-500/30">
+                    <label className="text-sm font-medium mb-2 block">Вход для Update Maker</label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="password"
+                        placeholder="Пароль"
+                        value={updateMakerPassword}
+                        onChange={(e) => setUpdateMakerPassword(e.target.value)}
+                      />
+                      <Button onClick={checkUpdateMakerPassword} variant="secondary">
+                        Войти
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -795,6 +903,15 @@ const Index = () => {
                   <p className="text-sm font-semibold text-green-700 dark:text-green-400 flex items-center gap-2">
                     <Icon name="ShieldCheck" size={18} />
                     Вы вошли как: Super Bear Adventure RU Community (Разработчик сайта)
+                  </p>
+                </div>
+              )}
+              
+              {isUpdateMaker && (
+                <div className="bg-red-500/10 p-4 rounded-lg border border-red-500/30">
+                  <p className="text-sm font-semibold text-red-700 dark:text-red-400 flex items-center gap-2">
+                    <Icon name="Zap" size={18} />
+                    Вы вошли как: Update Maker (Official Update Maker)
                   </p>
                 </div>
               )}
@@ -818,6 +935,11 @@ const Index = () => {
                             {review.is_admin && (
                               <Badge variant="secondary" className="text-xs">
                                 Разработчик сайта
+                              </Badge>
+                            )}
+                            {review.is_update_maker && (
+                              <Badge variant="destructive" className="text-xs">
+                                Official Update Maker
                               </Badge>
                             )}
                           </CardTitle>
@@ -854,6 +976,11 @@ const Index = () => {
                                     Разработчик сайта
                                   </Badge>
                                 )}
+                                {reply.is_update_maker && (
+                                  <Badge variant="destructive" className="text-xs">
+                                    Official Update Maker
+                                  </Badge>
+                                )}
                                 <span className="text-xs text-muted-foreground">
                                   {new Date(reply.created_at).toLocaleDateString('ru-RU', {
                                     day: 'numeric',
@@ -887,6 +1014,65 @@ const Index = () => {
             </CardContent>
           </Card>
         </div>
+
+        {achievements.length > 0 && (
+          <Card className="mt-8 border-2 border-yellow-500/30 bg-gradient-to-r from-yellow-500/5 to-orange-500/5">
+            <CardHeader>
+              <CardTitle className="text-2xl flex items-center gap-3">
+                <Icon name="Trophy" size={28} className="text-yellow-500" />
+                Ваши достижения ({achievements.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {achievements.includes('time_60min') && (
+                  <div className="bg-yellow-500/10 p-4 rounded-lg border border-yellow-500/30">
+                    <div className="flex items-center gap-3">
+                      <span className="text-4xl">⏱️</span>
+                      <div>
+                        <p className="font-semibold">Исследователь вики!</p>
+                        <p className="text-sm text-muted-foreground">Провели на сайте 60 минут</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {achievements.includes('dev_reply') && (
+                  <div className="bg-green-500/10 p-4 rounded-lg border border-green-500/30">
+                    <div className="flex items-center gap-3">
+                      <span className="text-4xl">🎮</span>
+                      <div>
+                        <p className="font-semibold">Признание команды!</p>
+                        <p className="text-sm text-muted-foreground">Разработчик ответил на ваш отзыв</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="mt-4 text-center text-sm text-muted-foreground">
+                <p>⏱️ Вы на сайте: {Math.floor(timeOnSite / 60)} мин {timeOnSite % 60} сек</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {showAchievement && (
+          <div className="fixed top-4 right-4 z-50 animate-fade-in">
+            <Card className="border-2 border-yellow-500 shadow-2xl bg-gradient-to-r from-yellow-500/20 to-orange-500/20">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Icon name="Trophy" size={24} className="text-yellow-500" />
+                  Достижение разблокировано!
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="font-semibold">{showAchievement.title}</p>
+                <p className="text-sm text-muted-foreground">{showAchievement.description}</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         <footer className="mt-8 text-center text-muted-foreground animate-fade-in space-y-2">
           <p className="text-sm">
