@@ -147,6 +147,27 @@ def handler(event: dict, context) -> dict:
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
                     'body': json.dumps({'success': True, 'reply_id': reply_id})
                 }
+            
+            elif action == 'delete_review':
+                review_id = body.get('review_id')
+                is_admin = body.get('is_admin', False)
+                
+                if not is_admin:
+                    return {
+                        'statusCode': 403,
+                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                        'body': json.dumps({'error': 'Only admin can delete reviews'})
+                    }
+                
+                cur.execute("DELETE FROM review_replies WHERE review_id = %s", (review_id,))
+                cur.execute("DELETE FROM reviews WHERE id = %s", (review_id,))
+                conn.commit()
+                
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'success': True})
+                }
         
         return {
             'statusCode': 405,

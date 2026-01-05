@@ -192,6 +192,39 @@ const Index = () => {
       alert('Неверный пароль');
     }
   };
+  
+  const deleteReview = async (reviewId: number) => {
+    if (!isAdmin) {
+      alert('Только администратор может удалять отзывы!');
+      return;
+    }
+    
+    if (!confirm('Вы уверены, что хотите удалить этот отзыв?')) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(REVIEWS_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete_review',
+          review_id: reviewId,
+          is_admin: isAdmin
+        })
+      });
+      
+      if (response.ok) {
+        alert('Отзыв успешно удалён!');
+        loadReviews();
+      } else {
+        alert('Ошибка при удалении отзыва');
+      }
+    } catch (error) {
+      console.error('Error deleting review:', error);
+      alert('Ошибка при удалении отзыва');
+    }
+  };
 
   const characters = [
     { 
@@ -1080,16 +1113,27 @@ const Index = () => {
                         </div>
                       )}
                       
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 items-center">
                         <Input
                           placeholder="Написать ответ..."
                           value={replyTexts[review.id] || ''}
                           onChange={(e) => setReplyTexts({ ...replyTexts, [review.id]: e.target.value })}
+                          className="flex-1"
                         />
                         <Button onClick={() => submitReply(review.id)} size="sm">
                           <Icon name="Reply" size={16} className="mr-1" />
                           Ответить
                         </Button>
+                        {isAdmin && (
+                          <Button 
+                            onClick={() => deleteReview(review.id)} 
+                            size="sm" 
+                            variant="destructive"
+                          >
+                            <Icon name="Trash2" size={16} className="mr-1" />
+                            Удалить
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
