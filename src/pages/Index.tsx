@@ -25,6 +25,7 @@ const Index = () => {
   const [updateTimer, setUpdateTimer] = useState<string>('');
   const [showUpdateTimer, setShowUpdateTimer] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(true);
+  const [registeredUsername, setRegisteredUsername] = useState<string>('');
   
   useEffect(() => {
     loadReviews();
@@ -42,6 +43,12 @@ const Index = () => {
     const savedTimer = localStorage.getItem('update_timer');
     if (savedTimer) {
       setShowUpdateTimer(true);
+    }
+    
+    const savedUsername = localStorage.getItem('registered_username');
+    if (savedUsername) {
+      setRegisteredUsername(savedUsername);
+      setNewReview(prev => ({ ...prev, username: savedUsername }));
     }
     
     // Трекинг времени на сайте
@@ -911,13 +918,22 @@ const Index = () => {
                 <h3 className="text-xl font-semibold mb-4">Оставить отзыв</h3>
                 <div className="space-y-4">
                   {!isAdmin && !isUpdateMaker && (
-                    <div>
+                    <div className="space-y-2">
                       <label className="text-sm font-medium mb-2 block">Ваш никнейм</label>
                       <Input
                         placeholder="Введите никнейм"
                         value={newReview.username}
-                        onChange={(e) => setNewReview({ ...newReview, username: e.target.value })}
+                        onChange={(e) => {
+                          setNewReview({ ...newReview, username: e.target.value });
+                          setRegisteredUsername(e.target.value);
+                          localStorage.setItem('registered_username', e.target.value);
+                        }}
                       />
+                      {registeredUsername && (
+                        <p className="text-xs text-green-600 dark:text-green-400">
+                          ✓ Никнейм сохранён и будет использоваться автоматически
+                        </p>
+                      )}
                     </div>
                   )}
                   

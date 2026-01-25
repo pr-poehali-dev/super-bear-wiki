@@ -15,7 +15,8 @@ def handler(event: dict, context) -> dict:
                 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type'
             },
-            'body': ''
+            'body': '',
+            'isBase64Encoded': False
         }
     
     dsn = os.environ.get('DATABASE_URL')
@@ -23,7 +24,8 @@ def handler(event: dict, context) -> dict:
         return {
             'statusCode': 500,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-            'body': json.dumps({'error': 'Database not configured'})
+            'body': json.dumps({'error': 'Database not configured'}),
+            'isBase64Encoded': False
         }
     
     conn = psycopg2.connect(dsn)
@@ -73,7 +75,8 @@ def handler(event: dict, context) -> dict:
                 return {
                     'statusCode': 200,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                    'body': json.dumps({'reviews': reviews})
+                    'body': json.dumps({'reviews': reviews}),
+                    'isBase64Encoded': False
                 }
         
         elif method == 'POST':
@@ -91,14 +94,16 @@ def handler(event: dict, context) -> dict:
                     return {
                         'statusCode': 400,
                         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                        'body': json.dumps({'error': 'Username and comment required'})
+                        'body': json.dumps({'error': 'Username and comment required'}),
+                        'isBase64Encoded': False
                     }
                 
                 if rating < 0 or rating > 5:
                     return {
                         'statusCode': 400,
                         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                        'body': json.dumps({'error': 'Rating must be between 0 and 5'})
+                        'body': json.dumps({'error': 'Rating must be between 0 and 5'}),
+                        'isBase64Encoded': False
                     }
                 
                 cur.execute("""
@@ -112,7 +117,8 @@ def handler(event: dict, context) -> dict:
                 return {
                     'statusCode': 200,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                    'body': json.dumps({'success': True, 'review_id': review_id})
+                    'body': json.dumps({'success': True, 'review_id': review_id}),
+                    'isBase64Encoded': False
                 }
             
             elif action == 'add_reply':
@@ -126,7 +132,8 @@ def handler(event: dict, context) -> dict:
                     return {
                         'statusCode': 400,
                         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                        'body': json.dumps({'error': 'Reply text required'})
+                        'body': json.dumps({'error': 'Reply text required'}),
+                        'isBase64Encoded': False
                     }
                 
                 if is_admin:
@@ -145,7 +152,8 @@ def handler(event: dict, context) -> dict:
                 return {
                     'statusCode': 200,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                    'body': json.dumps({'success': True, 'reply_id': reply_id})
+                    'body': json.dumps({'success': True, 'reply_id': reply_id}),
+                    'isBase64Encoded': False
                 }
             
             elif action == 'delete_review':
@@ -156,7 +164,8 @@ def handler(event: dict, context) -> dict:
                     return {
                         'statusCode': 403,
                         'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                        'body': json.dumps({'error': 'Only admin can delete reviews'})
+                        'body': json.dumps({'error': 'Only admin can delete reviews'}),
+                        'isBase64Encoded': False
                     }
                 
                 cur.execute("DELETE FROM review_replies WHERE review_id = %s", (review_id,))
@@ -166,13 +175,15 @@ def handler(event: dict, context) -> dict:
                 return {
                     'statusCode': 200,
                     'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                    'body': json.dumps({'success': True})
+                    'body': json.dumps({'success': True}),
+                    'isBase64Encoded': False
                 }
         
         return {
             'statusCode': 405,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-            'body': json.dumps({'error': 'Method not allowed'})
+            'body': json.dumps({'error': 'Method not allowed'}),
+            'isBase64Encoded': False
         }
     
     finally:
