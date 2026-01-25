@@ -536,12 +536,16 @@ const Index = () => {
             <Button onClick={toggleTheme} variant="outline" size="sm" className="gap-2">
               {isDarkTheme ? (
                 <>
-                  <span className="text-red-500 text-xl">✓</span>
+                  <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">✓</span>
+                  </div>
                   <span>Тёмная тема</span>
                 </>
               ) : (
                 <>
-                  <span className="text-blue-500 text-xl">✓</span>
+                  <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">✓</span>
+                  </div>
                   <span>Светлая тема</span>
                 </>
               )}
@@ -1034,7 +1038,9 @@ const Index = () => {
               {isAdmin && (
                 <div className="bg-green-500/10 p-4 rounded-lg border border-green-500/30">
                   <p className="text-sm font-semibold text-green-700 dark:text-green-400 flex items-center gap-2">
-                    <span className={`text-2xl ${isDarkTheme ? 'text-red-500' : 'text-blue-500'}`}>✓</span>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${isDarkTheme ? 'bg-red-500' : 'bg-blue-500'}`}>
+                      <span className="text-white text-sm font-bold">✓</span>
+                    </div>
                     Вы вошли как: Super Bear Adventure RU Community
                   </p>
                 </div>
@@ -1044,7 +1050,9 @@ const Index = () => {
                 <div className="space-y-4">
                   <div className="bg-red-500/10 p-4 rounded-lg border border-red-500/30">
                     <p className="text-sm font-semibold text-red-700 dark:text-red-400 flex items-center gap-2">
-                      <span className={`text-2xl ${isDarkTheme ? 'text-red-500' : 'text-blue-500'}`}>✓</span>
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center ${isDarkTheme ? 'bg-red-500' : 'bg-blue-500'}`}>
+                        <span className="text-white text-sm font-bold">✓</span>
+                      </div>
                       Вы вошли как: Update Maker
                     </p>
                   </div>
@@ -1107,10 +1115,14 @@ const Index = () => {
                           <CardTitle className="text-lg flex items-center gap-2">
                             {review.username}
                             {review.is_admin && (
-                              <span className={`text-2xl ${isDarkTheme ? 'text-red-500' : 'text-blue-500'}`}>✓</span>
+                              <div className={`w-5 h-5 rounded-full flex items-center justify-center ${isDarkTheme ? 'bg-red-500' : 'bg-blue-500'}`}>
+                                <span className="text-white text-xs font-bold">✓</span>
+                              </div>
                             )}
                             {review.is_update_maker && (
-                              <span className={`text-2xl ${isDarkTheme ? 'text-red-500' : 'text-blue-500'}`}>✓</span>
+                              <div className={`w-5 h-5 rounded-full flex items-center justify-center ${isDarkTheme ? 'bg-red-500' : 'bg-blue-500'}`}>
+                                <span className="text-white text-xs font-bold">✓</span>
+                              </div>
                             )}
                           </CardTitle>
                           <CardDescription>
@@ -1144,10 +1156,14 @@ const Index = () => {
                               <div className="flex items-center gap-2 mb-2">
                                 <span className="font-semibold text-sm">{reply.username}</span>
                                 {reply.is_admin && (
-                                  <span className={`text-lg ${isDarkTheme ? 'text-red-500' : 'text-blue-500'}`}>✓</span>
+                                  <div className={`w-4 h-4 rounded-full flex items-center justify-center ${isDarkTheme ? 'bg-red-500' : 'bg-blue-500'}`}>
+                                    <span className="text-white text-[10px] font-bold">✓</span>
+                                  </div>
                                 )}
                                 {reply.is_update_maker && (
-                                  <span className={`text-lg ${isDarkTheme ? 'text-red-500' : 'text-blue-500'}`}>✓</span>
+                                  <div className={`w-4 h-4 rounded-full flex items-center justify-center ${isDarkTheme ? 'bg-red-500' : 'bg-blue-500'}`}>
+                                    <span className="text-white text-[10px] font-bold">✓</span>
+                                  </div>
                                 )}
                                 <span className="text-xs text-muted-foreground">
                                   {new Date(reply.created_at).toLocaleDateString('ru-RU', {
