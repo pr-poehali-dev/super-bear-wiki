@@ -24,10 +24,25 @@ const Index = () => {
   const [showAchievement, setShowAchievement] = useState<{title: string, description: string} | null>(null);
   const [updateTimer, setUpdateTimer] = useState<string>('');
   const [showUpdateTimer, setShowUpdateTimer] = useState(false);
+  const [isDarkTheme, setIsDarkTheme] = useState(true);
   
   useEffect(() => {
     loadReviews();
     loadAchievements();
+    
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') {
+      setIsDarkTheme(false);
+      document.documentElement.classList.remove('dark');
+    } else {
+      setIsDarkTheme(true);
+      document.documentElement.classList.add('dark');
+    }
+    
+    const savedTimer = localStorage.getItem('update_timer');
+    if (savedTimer) {
+      setShowUpdateTimer(true);
+    }
     
     // Трекинг времени на сайте
     const startTime = Date.now();
@@ -223,6 +238,18 @@ const Index = () => {
     } catch (error) {
       console.error('Error deleting review:', error);
       alert('Ошибка при удалении отзыва');
+    }
+  };
+  
+  const toggleTheme = () => {
+    const newTheme = !isDarkTheme;
+    setIsDarkTheme(newTheme);
+    if (newTheme) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
     }
   };
 
@@ -485,8 +512,35 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/10 to-accent/10">
-      <div className="container mx-auto px-4 py-8">
+      {showUpdateTimer && localStorage.getItem('update_timer') && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 px-4 shadow-lg">
+          <div className="container mx-auto flex items-center justify-center gap-3">
+            <Icon name="Clock" size={20} />
+            <p className="font-semibold">
+              ⏰ Обновление запланировано на: {new Date(localStorage.getItem('update_timer')!).toLocaleString('ru-RU')}
+            </p>
+          </div>
+        </div>
+      )}
+      
+      <div className="container mx-auto px-4 py-8" style={{ marginTop: showUpdateTimer ? '3rem' : '0' }}>
         <header className="text-center mb-12 animate-fade-in">
+          <div className="flex justify-end mb-4">
+            <Button onClick={toggleTheme} variant="outline" size="sm" className="gap-2">
+              {isDarkTheme ? (
+                <>
+                  <span className="text-red-500 text-xl">✓</span>
+                  <span>Тёмная тема</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-blue-500 text-xl">✓</span>
+                  <span>Светлая тема</span>
+                </>
+              )}
+            </Button>
+          </div>
+          
           <div className="relative w-full h-64 mb-8 rounded-2xl overflow-hidden shadow-2xl">
             <img 
               src="https://cdn.poehali.dev/projects/cfd9966b-a86b-4915-bb4d-b9ebe9a97be6/files/817798a4-d2af-4fd4-9796-b77425d942ba.jpg" 
@@ -964,8 +1018,8 @@ const Index = () => {
               {isAdmin && (
                 <div className="bg-green-500/10 p-4 rounded-lg border border-green-500/30">
                   <p className="text-sm font-semibold text-green-700 dark:text-green-400 flex items-center gap-2">
-                    <Icon name="ShieldCheck" size={18} />
-                    Вы вошли как: Super Bear Adventure RU Community (Разработчик сайта)
+                    <span className={`text-2xl ${isDarkTheme ? 'text-red-500' : 'text-blue-500'}`}>✓</span>
+                    Вы вошли как: Super Bear Adventure RU Community
                   </p>
                 </div>
               )}
@@ -974,8 +1028,8 @@ const Index = () => {
                 <div className="space-y-4">
                   <div className="bg-red-500/10 p-4 rounded-lg border border-red-500/30">
                     <p className="text-sm font-semibold text-red-700 dark:text-red-400 flex items-center gap-2">
-                      <Icon name="Zap" size={18} />
-                      Вы вошли как: Update Maker (Official Update Maker)
+                      <span className={`text-2xl ${isDarkTheme ? 'text-red-500' : 'text-blue-500'}`}>✓</span>
+                      Вы вошли как: Update Maker
                     </p>
                   </div>
                   
@@ -1037,25 +1091,10 @@ const Index = () => {
                           <CardTitle className="text-lg flex items-center gap-2">
                             {review.username}
                             {review.is_admin && (
-                              <Badge variant="secondary" className="text-xs">
-                                Разработчик сайта
-                              </Badge>
+                              <span className={`text-2xl ${isDarkTheme ? 'text-red-500' : 'text-blue-500'}`}>✓</span>
                             )}
                             {review.is_update_maker && (
-                              <Badge variant="destructive" className="text-xs">
-                                Official Update Maker
-                              </Badge>
-                            )}
-                            {!review.is_admin && !review.is_update_maker && (
-                              achievements.includes('time_60min') ? (
-                                <Badge variant="outline" className="text-xs bg-blue-500/10 border-blue-500/30">
-                                  🔥 Много на сайте
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="text-xs bg-green-500/10 border-green-500/30">
-                                  🌟 Впервые на сайте
-                                </Badge>
-                              )
+                              <span className={`text-2xl ${isDarkTheme ? 'text-red-500' : 'text-blue-500'}`}>✓</span>
                             )}
                           </CardTitle>
                           <CardDescription>
@@ -1089,14 +1128,10 @@ const Index = () => {
                               <div className="flex items-center gap-2 mb-2">
                                 <span className="font-semibold text-sm">{reply.username}</span>
                                 {reply.is_admin && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    Разработчик сайта
-                                  </Badge>
+                                  <span className={`text-lg ${isDarkTheme ? 'text-red-500' : 'text-blue-500'}`}>✓</span>
                                 )}
                                 {reply.is_update_maker && (
-                                  <Badge variant="destructive" className="text-xs">
-                                    Official Update Maker
-                                  </Badge>
+                                  <span className={`text-lg ${isDarkTheme ? 'text-red-500' : 'text-blue-500'}`}>✓</span>
                                 )}
                                 <span className="text-xs text-muted-foreground">
                                   {new Date(reply.created_at).toLocaleDateString('ru-RU', {
@@ -1172,6 +1207,18 @@ const Index = () => {
                       <div>
                         <p className="font-semibold">Признание команды!</p>
                         <p className="text-sm text-muted-foreground">Разработчик ответил на ваш отзыв</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {achievements.includes('update_witness') && (
+                  <div className="bg-purple-500/10 p-4 rounded-lg border border-purple-500/30">
+                    <div className="flex items-center gap-3">
+                      <span className="text-4xl">🎉</span>
+                      <div>
+                        <p className="font-semibold">Свидетель обновления!</p>
+                        <p className="text-sm text-muted-foreground">Вы были на сайте во время обновления</p>
                       </div>
                     </div>
                   </div>
